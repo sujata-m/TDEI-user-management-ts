@@ -58,8 +58,8 @@ class ReferralCodeService implements IReferralCodeService {
         normalized.project_group_id = projectGroupId;
         normalized.user_id = userId;
 
-        const existingActiveCode = await this.checkReferralCodeExists({ code: normalized.code });
-        if (existingActiveCode?.is_active) {
+        const existingCode = await this.checkReferralCodeExists({ code: normalized.code });
+        if (existingCode) {
             throw new HttpException(402, "Code already exists");
         }
 
@@ -105,8 +105,8 @@ class ReferralCodeService implements IReferralCodeService {
 
         const normalized = this.normalizeReferralCodeInput(referralCode);
 
-        const existingActiveCode = await this.checkReferralCodeExists({ code: normalized.code });
-        if (existingActiveCode?.is_active && existingActiveCode.id !== codeId) {
+        const existingCode = await this.checkReferralCodeExists({ code: normalized.code });
+        if (existingCode && existingCode.id !== codeId) {
             throw new HttpException(402, "Code already exists");
         }
 

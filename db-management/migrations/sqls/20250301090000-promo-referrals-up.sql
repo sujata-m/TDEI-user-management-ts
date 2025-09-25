@@ -24,8 +24,7 @@ DROP INDEX IF EXISTS unq_promo_referrals_code;
 
 CREATE UNIQUE INDEX unq_promo_referrals_code
     ON public.promo_referrals USING btree
-    (code COLLATE pg_catalog."default")
-    WHERE (is_active = true);
+    (code COLLATE pg_catalog."default");
 
 CREATE INDEX IF NOT EXISTS idx_promo_referrals_project_group
     ON public.promo_referrals USING btree
