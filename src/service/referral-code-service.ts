@@ -58,6 +58,11 @@ class ReferralCodeService implements IReferralCodeService {
         normalized.project_group_id = projectGroupId;
         normalized.user_id = userId;
 
+        const existingActiveCode = await this.checkReferralCodeExists({ code: normalized.code });
+        if (existingActiveCode?.is_active) {
+            throw new HttpException(402, "Code already exists");
+        }
+
         const query = {
             text: `INSERT INTO promo_referrals
                    (name, type, valid_from, code, valid_to, instructions_url, project_group_id, user_id, description, is_active)
@@ -96,9 +101,14 @@ class ReferralCodeService implements IReferralCodeService {
             throw new HttpException(400, "Referral code id is required");
         }
 
-        await this.ensureReferralCodeExists(codeId, projectGroupId);
+        await this.checkReferralCodeExists({ codeId, projectGroupId });
 
         const normalized = this.normalizeReferralCodeInput(referralCode);
+
+        const existingActiveCode = await this.checkReferralCodeExists({ code: normalized.code });
+        if (existingActiveCode?.is_active && existingActiveCode.id !== codeId) {
+            throw new HttpException(402, "Code already exists");
+        }
 
         const query = {
             text: `UPDATE promo_referrals
@@ -202,16 +212,53 @@ class ReferralCodeService implements IReferralCodeService {
         return { whereClause, values, nextIndex };
     }
 
-    private async ensureReferralCodeExists(codeId: string, projectGroupId: string): Promise<void> {
+    private async checkReferralCodeExists({
+        codeId,
+        projectGroupId,
+        code,
+    }: {
+        codeId?: string;
+        projectGroupId?: string;
+        code?: string;
+    }): Promise<{ id: string; is_active: boolean } | null> {
+        let index = 1;
+        const values: any[] = [];
+        const conditions: string[] = [];
+
+        if (codeId) {
+            conditions.push(`id = $${index++}`);
+            values.push(codeId);
+        }
+
+        if (projectGroupId) {
+            conditions.push(`project_group_id = $${index++}`);
+            values.push(projectGroupId);
+        }
+
+        if (code) {
+            const trimmedCode = code.trim();
+            conditions.push(`LOWER(code) = LOWER($${index++})`);
+            values.push(trimmedCode);
+        }
+
+        if (conditions.length === 0) {
+            return null;
+        }
+
+        const orderClause = code ? " ORDER BY is_active DESC" : "";
+
         const query = {
-            text: `SELECT id FROM promo_referrals WHERE id = $1 AND project_group_id = $2 AND is_active = true`,
-            values: [codeId, projectGroupId],
+            text: `SELECT id, is_active FROM promo_referrals WHERE ${conditions.join(" AND ")}${orderClause} LIMIT 1`,
+            values,
         };
 
         const result = await dbClient.query(query);
-        if (result.rows.length === 0) {
+
+        if (codeId && (!result.rows.length || !result.rows[0].is_active)) {
             throw new HttpException(404, "Referral code not found");
         }
+
+        return result.rows.length > 0 ? result.rows[0] : null;
     }
 
     private normalizeReferralCodeInput(referralCode: ReferralCodeDto): ReferralCodeDto {

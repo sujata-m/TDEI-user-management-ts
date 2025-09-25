@@ -4,8 +4,6 @@ import { ReferralCodeDto } from "../../src/model/dto/referral-code-dto";
 import { ReferralCodeQueryParams } from "../../src/model/params/referral-code-query-params";
 import { QueryResult } from "pg";
 import HttpException from "../../src/exceptions/http/http-base-exception";
-import UniqueKeyDbException from "../../src/exceptions/db/database-exceptions";
-import { DuplicateException } from "../../src/exceptions/http/http-exceptions";
 
 describe("ReferralCodeService", () => {
     afterEach(() => {
@@ -153,7 +151,8 @@ describe("ReferralCodeService", () => {
 
             const querySpy = jest
                 .spyOn(dbClient, "query")
-                .mockResolvedValueOnce({ rows: [insertedRow] } as QueryResult);
+                .mockResolvedValueOnce({ rows: [] } as any)
+                .mockResolvedValueOnce({ rows: [insertedRow] } as any);
 
             const dto = new ReferralCodeDto({
                 name: "  Fall Special  ",
@@ -167,7 +166,12 @@ describe("ReferralCodeService", () => {
 
             const result = await referralCodeService.createReferralCode("proj", dto, "user");
 
-            expect(querySpy).toHaveBeenCalledWith(expect.objectContaining({
+            expect(querySpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                text: expect.stringContaining("SELECT id, is_active FROM promo_referrals"),
+                values: ["FALL25"],
+            }));
+
+            expect(querySpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
                 values: [
                     "Fall Special",
                     2,
@@ -184,7 +188,7 @@ describe("ReferralCodeService", () => {
             expect(result).toEqual(expect.objectContaining({ code: "FALL25" }));
         });
 
-        test("throws duplicate exception when code already exists", async () => {
+        test("throws 402 when active code already exists", async () => {
             const dto = new ReferralCodeDto({
                 name: "Promo",
                 type: 2,
@@ -193,9 +197,53 @@ describe("ReferralCodeService", () => {
                 valid_to: "2025-11-01T00:00:00Z",
             });
 
-            jest.spyOn(dbClient, "query").mockRejectedValueOnce(new UniqueKeyDbException("duplicate"));
+            jest.spyOn(dbClient, "query").mockResolvedValueOnce({
+                rows: [{ id: "existing-id", is_active: true }],
+            } as any);
 
-            await expect(referralCodeService.createReferralCode("proj", dto, "user")).rejects.toThrow(DuplicateException);
+            await expect(referralCodeService.createReferralCode("proj", dto, "user")).rejects.toMatchObject({
+                status: 402,
+                message: "Code already exists",
+            });
+        });
+
+        test("creates new referral code when existing record is inactive", async () => {
+            const dto = new ReferralCodeDto({
+                name: "Promo",
+                type: 2,
+                valid_from: "2025-10-01T00:00:00Z",
+                code: "PROMO",
+                valid_to: "2025-11-01T00:00:00Z",
+            });
+
+            const insertedRow = {
+                id: "new-id",
+                name: "Promo",
+                type: 2,
+                valid_from: "2025-10-01T00:00:00Z",
+                code: "PROMO",
+                valid_to: "2025-11-01T00:00:00Z",
+                instructions_url: null,
+                project_group_id: "proj",
+                user_id: "user",
+                created_at: "2025-09-01T00:00:00Z",
+                updated_at: "2025-09-01T00:00:00Z",
+                description: null,
+                is_active: true,
+            };
+
+            const querySpy = jest
+                .spyOn(dbClient, "query")
+                .mockResolvedValueOnce({ rows: [{ id: "old-id", is_active: false }] } as any)
+                .mockResolvedValueOnce({ rows: [insertedRow] } as any);
+
+            const result = await referralCodeService.createReferralCode("proj", dto, "user");
+
+            expect(result).toBeInstanceOf(ReferralCodeDto);
+            expect(querySpy).toHaveBeenCalledTimes(2);
+            expect(querySpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                text: expect.stringContaining("INSERT INTO promo_referrals"),
+            }));
         });
 
         test("throws error when limited time code is missing valid_to", async () => {
@@ -251,7 +299,8 @@ describe("ReferralCodeService", () => {
 
             const querySpy = jest
                 .spyOn(dbClient, "query")
-                .mockResolvedValueOnce({ rows: [insertedRow] } as QueryResult);
+                .mockResolvedValueOnce({ rows: [] } as any)
+                .mockResolvedValueOnce({ rows: [insertedRow] } as any);
 
             const dto = new ReferralCodeDto({
                 name: " Always On ",
@@ -265,7 +314,12 @@ describe("ReferralCodeService", () => {
 
             await referralCodeService.createReferralCode("proj", dto, "user");
 
-            expect(querySpy).toHaveBeenCalledWith(expect.objectContaining({
+            expect(querySpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                text: expect.stringContaining("SELECT id, is_active FROM promo_referrals"),
+                values: ["ALWAYS"],
+            }));
+
+            expect(querySpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
                 values: [
                     "Always On",
                     1,
@@ -307,7 +361,7 @@ describe("ReferralCodeService", () => {
 
         test("updates referral code successfully", async () => {
             const ensureResult: QueryResult = {
-                rows: [{ id: "code-id" }],
+                rows: [{ id: "code-id", is_active: true }],
                 rowCount: 1,
                 command: "SELECT",
                 fields: [],
@@ -337,6 +391,7 @@ describe("ReferralCodeService", () => {
             const querySpy = jest
                 .spyOn(dbClient, "query")
                 .mockResolvedValueOnce(ensureResult)
+                .mockResolvedValueOnce({ rows: [{ id: "code-id", is_active: true }] } as any)
                 .mockResolvedValueOnce(updateResult);
 
             const dto = new ReferralCodeDto({
@@ -350,7 +405,7 @@ describe("ReferralCodeService", () => {
 
             const result = await referralCodeService.updateReferralCode("proj", "code-id", dto, "user");
 
-            expect(querySpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            expect(querySpy).toHaveBeenNthCalledWith(3, expect.objectContaining({
                 values: [
                     "Promo",
                     1,
@@ -368,9 +423,9 @@ describe("ReferralCodeService", () => {
             expect(result).toEqual(expect.objectContaining({ id: "code-id", code: "PROMO" }));
         });
 
-        test("throws duplicate exception when updating with existing code", async () => {
+        test("throws 402 when updating with active duplicate code", async () => {
             const ensureResult: QueryResult = {
-                rows: [{ id: "code-id" }],
+                rows: [{ id: "code-id", is_active: true }],
                 rowCount: 1,
                 command: "SELECT",
                 fields: [],
@@ -379,7 +434,7 @@ describe("ReferralCodeService", () => {
             jest
                 .spyOn(dbClient, "query")
                 .mockResolvedValueOnce(ensureResult)
-                .mockRejectedValueOnce(new UniqueKeyDbException("duplicate"));
+                .mockResolvedValueOnce({ rows: [{ id: "other-id", is_active: true }] } as any);
 
             const dto = new ReferralCodeDto({
                 id: "code-id",
@@ -389,7 +444,10 @@ describe("ReferralCodeService", () => {
                 code: "PROMO",
             });
 
-            await expect(referralCodeService.updateReferralCode("proj", "code-id", dto, "user")).rejects.toThrow(DuplicateException);
+            await expect(referralCodeService.updateReferralCode("proj", "code-id", dto, "user")).rejects.toMatchObject({
+                status: 402,
+                message: "Code already exists",
+            });
         });
 
         test("throws not found error when referral code does not exist", async () => {
