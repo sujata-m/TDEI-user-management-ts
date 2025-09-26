@@ -930,6 +930,290 @@
                 ]
             }
         },
+        "/api/v1/project-group/{projectGroupId}/referral-codes": {
+            "get": {
+                "tags": [
+                    "ProjectGroup"
+                ],
+                "summary": "Lists referral or invite codes for a project group",
+                "description": "Returns a paginated list of referral/promo codes for the specified project group.",
+                "operationId": "getProjectGroupReferralCodes",
+                "parameters": [
+                    {
+                        "name": "projectGroupId",
+                        "in": "path",
+                        "description": "Project group id whose referral codes should be retrieved",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Filter by referral code type. 1 = always available, 2 = limited time.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "enum": [
+                                1,
+                                2
+                            ]
+                        }
+                    },
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "description": "Filter by referral code name (partial match).",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "code",
+                        "in": "query",
+                        "description": "Filter by referral code value (partial match).",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page_no",
+                        "in": "query",
+                        "description": "Page number to fetch",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "page_size",
+                        "in": "query",
+                        "description": "Total records to fetch per page.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns a paginated list of referral codes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReferralCodeListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request."
+                    },
+                    "401": {
+                        "description": "Unauthenticated request"
+                    },
+                    "403": {
+                        "description": "Unauthorized request"
+                    },
+                    "500": {
+                        "description": "Internal server error."
+                    }
+                },
+                "security": [
+                    {
+                        "AuthorizationToken": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "ProjectGroup"
+                ],
+                "summary": "Creates a referral or invite code",
+                "description": "Creates a new referral/promo code for the specified project group.",
+                "operationId": "createProjectGroupReferralCode",
+                "parameters": [
+                    {
+                        "name": "projectGroupId",
+                        "in": "path",
+                        "description": "Project group id for which the referral code is being created",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReferralCodeCreate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Referral code created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReferralCodeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request."
+                    },
+                    "401": {
+                        "description": "Unauthenticated request"
+                    },
+                    "403": {
+                        "description": "Unauthorized request"
+                    },
+                    "500": {
+                        "description": "Internal server error."
+                    }
+                },
+                "security": [
+                    {
+                        "AuthorizationToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/project-group/{projectGroupId}/referral-codes/{code_id}": {
+            "put": {
+                "tags": [
+                    "ProjectGroup"
+                ],
+                "summary": "Updates an existing referral or invite code",
+                "description": "Updates an existing referral/promo code for the specified project group.",
+                "operationId": "updateProjectGroupReferralCode",
+                "parameters": [
+                    {
+                        "name": "projectGroupId",
+                        "in": "path",
+                        "description": "Project group id that owns the referral code",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "code_id",
+                        "in": "path",
+                        "description": "Unique identifier of the referral code",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReferralCodeUpdate"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Referral code updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReferralCodeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request."
+                    },
+                    "401": {
+                        "description": "Unauthenticated request"
+                    },
+                    "403": {
+                        "description": "Unauthorized request"
+                    },
+                    "404": {
+                        "description": "Referral code not found."
+                    },
+                    "500": {
+                        "description": "Internal server error."
+                    }
+                },
+                "security": [
+                    {
+                        "AuthorizationToken": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "ProjectGroup"
+                ],
+                "summary": "Deletes (soft deletes) a referral or invite code",
+                "description": "Marks the specified referral/promo code as inactive.",
+                "operationId": "deleteProjectGroupReferralCode",
+                "parameters": [
+                    {
+                        "name": "projectGroupId",
+                        "in": "path",
+                        "description": "Project group id that owns the referral code",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "code_id",
+                        "in": "path",
+                        "description": "Unique identifier of the referral code",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Referral code deleted successfully."
+                    },
+                    "400": {
+                        "description": "Invalid request."
+                    },
+                    "401": {
+                        "description": "Unauthenticated request"
+                    },
+                    "403": {
+                        "description": "Unauthorized request"
+                    },
+                    "404": {
+                        "description": "Referral code not found."
+                    },
+                    "500": {
+                        "description": "Internal server error."
+                    }
+                },
+                "security": [
+                    {
+                        "AuthorizationToken": []
+                    }
+                ]
+            }
+        },
         "/api/v1/project-group/{projectGroupId}/users": {
             "get": {
                 "tags": [
@@ -1320,6 +1604,241 @@
                     }
                 },
                 "description": "Describes a Service update model."
+            },
+            "ReferralCode": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Unique identifier for the referral code."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name for the referral code."
+                    },
+                    "type": {
+                        "type": "integer",
+                        "enum": [
+                            1,
+                            2
+                        ],
+                        "description": "Type of referral code. 1 = always available, 2 = limited time."
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Start date/time from which the code is valid."
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Referral or promo code value."
+                    },
+                    "valid_to": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "End date/time for limited time codes."
+                    },
+                    "instructions_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "description": "URL for post-registration instructions."
+                    },
+                    "project_group_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Project group to which the code belongs."
+                    },
+                    "user_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Identifier of the user that last modified the code."
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp when the code was created."
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Timestamp when the code was last updated."
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Additional information about the referral code."
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Indicates whether the referral code is active."
+                    }
+                },
+                "description": "Describes a referral or promo code."
+            },
+            "ReferralCodeCreate": {
+                "required": [
+                    "name",
+                    "type",
+                    "valid_from",
+                    "code"
+                ],
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Display name for the referral code."
+                    },
+                    "type": {
+                        "type": "integer",
+                        "enum": [
+                            1,
+                            2
+                        ],
+                        "description": "Type of referral code. 1 = always available, 2 = limited time."
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Start date/time from which the code is valid."
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Referral or promo code value."
+                    },
+                    "valid_to": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "End date/time for limited time codes."
+                    },
+                    "instructions_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "description": "URL for post-registration instructions."
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Additional information about the referral code."
+                    }
+                },
+                "description": "Request body for creating a referral or promo code."
+            },
+            "ReferralCodeUpdate": {
+                "required": [
+                    "id",
+                    "name",
+                    "type",
+                    "valid_from",
+                    "code"
+                ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Unique identifier for the referral code."
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name for the referral code."
+                    },
+                    "type": {
+                        "type": "integer",
+                        "enum": [
+                            1,
+                            2
+                        ],
+                        "description": "Type of referral code. 1 = always available, 2 = limited time."
+                    },
+                    "valid_from": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Start date/time from which the code is valid."
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Referral or promo code value."
+                    },
+                    "valid_to": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "description": "End date/time for limited time codes."
+                    },
+                    "instructions_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "description": "URL for post-registration instructions."
+                    },
+                    "description": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Additional information about the referral code."
+                    }
+                },
+                "description": "Request body for updating a referral or promo code."
+            },
+            "ReferralCodeResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/ReferralCode"
+                    }
+                },
+                "description": "Response wrapper for a single referral code."
+            },
+            "ReferralCodeListResponse": {
+                "type": "object",
+                "properties": {
+                    "total_items": {
+                        "type": "integer",
+                        "description": "Total number of matching referral codes."
+                    },
+                    "per_page": {
+                        "type": "integer",
+                        "description": "Number of items returned per page."
+                    },
+                    "current_page": {
+                        "type": "integer",
+                        "description": "Current page number."
+                    },
+                    "total_pages": {
+                        "type": "integer",
+                        "description": "Total number of pages available."
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReferralCode"
+                        },
+                        "description": "List of referral codes."
+                    }
+                },
+                "description": "Paginated response for referral codes."
             },
             "Response": {
                 "type": "object",
