@@ -12,33 +12,24 @@ class ReferralCodeService implements IReferralCodeService {
             throw new HttpException(400, "projectGroupId is required");
         }
 
-        const pageNo = params.page_no && params.page_no > 0 ? params.page_no : 1;
-        const requestedPageSize = params.page_size && params.page_size > 0 ? params.page_size : 10;
-        const take = requestedPageSize > 50 ? 50 : requestedPageSize;
-        const skip = pageNo <= 1 ? 0 : (pageNo - 1) * take;
+        const sanitizedParams = new ReferralCodeQueryParams(params);
 
-        const filter = this.buildFilters(projectGroupId, params);
-
-        const countQuery = {
-            text: `SELECT COUNT(*)::int AS total FROM promo_referrals ${filter.whereClause}`,
-            values: filter.values,
-        };
-
-        const totalResult = await dbClient.query(countQuery);
+        const countQueryObject = sanitizedParams.getCountQueryObject(projectGroupId);
+        const totalResult = await dbClient.query({
+            text: countQueryObject.getQuery(),
+            values: countQueryObject.getValues(),
+        });
         const totalItems: number = totalResult.rows.length > 0 ? totalResult.rows[0].total : 0;
 
-        const dataValues = [...filter.values, take, skip];
-        const dataQuery = {
-            text: `SELECT id, name, type, valid_from, code, valid_to, instructions_url, project_group_id, user_id, created_at, updated_at, description, is_active
-                   FROM promo_referrals ${filter.whereClause}
-                   ORDER BY created_at DESC
-                   LIMIT $${filter.nextIndex} OFFSET $${filter.nextIndex + 1}`,
-            values: dataValues,
-        };
-
-        const dataResult = await dbClient.query(dataQuery);
+        const dataQueryObject = sanitizedParams.getListQueryObject(projectGroupId);
+        const dataResult = await dbClient.query({
+            text: dataQueryObject.getQuery(),
+            values: dataQueryObject.getValues(),
+        });
         const data = dataResult.rows.map(row => ReferralCodeDto.from(row));
 
+        const pageNo = sanitizedParams.page_no;
+        const take = sanitizedParams.page_size;
         const totalPages = take === 0 ? 0 : Math.ceil(totalItems / take);
 
         return {
@@ -174,42 +165,6 @@ class ReferralCodeService implements IReferralCodeService {
             throw new HttpException(404, "Referral code not found");
         }
         return true;
-    }
-
-    private buildFilters(projectGroupId: string, params: ReferralCodeQueryParams): { whereClause: string; values: any[]; nextIndex: number } {
-        let nextIndex = 1;
-        const conditions: string[] = [];
-        const values: any[] = [];
-
-        conditions.push(`project_group_id = $${nextIndex++}`);
-        values.push(projectGroupId);
-
-        conditions.push(`is_active = $${nextIndex++}`);
-        values.push(true);
-
-        if (params.type !== undefined) {
-            const typeValue = Number(params.type);
-            if (!Number.isNaN(typeValue)) {
-                conditions.push(`type = $${nextIndex++}`);
-                values.push(typeValue);
-            }
-        }
-
-        const nameFilter = params.name?.toString().trim();
-        if (nameFilter) {
-            conditions.push(`name ILIKE $${nextIndex++}`);
-            values.push(`%${nameFilter}%`);
-        }
-
-        const codeFilter = params.code?.toString().trim();
-        if (codeFilter) {
-            conditions.push(`code ILIKE $${nextIndex++}`);
-            values.push(`%${codeFilter}%`);
-        }
-
-        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-        return { whereClause, values, nextIndex };
     }
 
     private async checkReferralCodeExists({
